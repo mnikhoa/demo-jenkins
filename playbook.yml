@@ -3,9 +3,13 @@
   remote_user: ubuntu
   become: yes
   tasks:
-    # - name: Update all packages to the latest version
-    #   apt:
-    #     upgrade: dist
+
+    - name: Update all packages to the latest version
+      remote_user: ubuntu
+      apt:
+        # upgrade: dist
+        update_cache: yes
+
     # - name: Install Docker
     #   package:
     #     name:
@@ -15,22 +19,81 @@
     #       - docker-buildx
     #       - docker-compose
     #     state: present
-    - name: Install Docker on Webserver
-      shell: |
-          sudo -s
-          sudo apt-get update
-          sudo apt-get install -y \
-              ca-certificates
-              curl \
-              gnupg \
-              lsb-release &&
-          sudo mkdir -m 0755 -p /etc/apt/keyrings
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg &&
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null &&
-          sudo apt-get update
-          sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+    - name: Install docker packages
+      remote_user: ubuntu
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+      tags:
+        - docker
+
+    - name: Add Docker s official GPG key
+      remote_user: ubuntu
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      tags:
+        - docker
+
+    - name: Verify that we have the key with the fingerprint
+      remote_user: ubuntu
+      apt_key:
+        id: 0EBFCD88
+        state: present
+      tags:
+        - docker
+
+    - name: Set up the stable repository
+      remote_user: ubuntu
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+        state: present
+        update_cache: yes
+      tags:
+        - docker
+
+    - name: Update apt packages
+      remote_user: ubuntu
+      apt:
+        update_cache: yes
+      tags:
+        - docker
+
+    - name: Install docker
+      remote_user: ubuntu
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+      #notify: Start docker on boot
+      tags:
+        - docker
+    
+    - name: Install docker-compose
+      remote_user: ubuntu
+      apt:
+        name: docker-compose
+        state: present
+        update_cache: yes
+      tags:
+        - docker
+
+    - name: Add remote "ubuntu" user to "docker" group
+      remote_user: ubuntu
+      user:
+        name: "ubuntu"
+        group: "docker"
+        append: yes
+      tags:
+        - docker
+      
     - name: Login DockerHub
       # shell: docker login -u "{{DOCKER_USERNAME}}" -p "{{DOCKER_PASSWORD}}"
       shell: |
@@ -39,14 +102,22 @@
           apt install gnome-keyring -y
           apt install gnupg2 pass -y
           echo "{{DOCKER_PASSWORD}}" | docker login --username "{{DOCKER_USERNAME}}" --password-stdin
+      tags:
+        - docker
+
     - name: Copy file
       copy:
         src: docker-compose.yaml
         dest: /home/ubuntu/
+      tags:
+        - docker
+
     - name: Restart docker-compose
       shell: |
           docker-compose stop
           docker-compose rm -f
           docker-compose pull
           docker-compose up -d
+      tags:
+        - docker
 ...

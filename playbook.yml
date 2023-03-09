@@ -1,0 +1,30 @@
+---
+- hosts: Webserver
+  remote_user: ubuntu
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name:
+          - docker
+          - docker-compose
+        state: present
+    - name: Login DockerHub
+      # shell: docker login -u "{{DOCKER_USERNAME}}" -p "{{DOCKER_PASSWORD}}"
+      shell: |
+          apt update && apt-get update
+          apt install dbus-x11 -y
+          apt install gnome-keyring -y
+          apt install gnupg2 pass -y
+          echo "{{DOCKER_PASSWORD}}" | docker login --username "{{DOCKER_USERNAME}}" --password-stdin
+    - name: Copy file
+      copy:
+        src: docker-compose.yaml
+        dest: /home/ubuntu/
+    - name: Restart docker-compose
+      shell: |
+          docker-compose stop
+          docker-compose rm -f
+          docker-compose pull
+          docker-compose up -d
+...

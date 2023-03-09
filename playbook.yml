@@ -42,18 +42,18 @@
       tags:
         - docker
 
-    - name: Verify that we have the key with the fingerprint
-      remote_user: ubuntu
-      apt_key:
-        id: 0EBFCD88
-        state: present
-      tags:
-        - docker
+    # - name: Verify that we have the key with the fingerprint
+    #   remote_user: ubuntu
+    #   apt_key:
+    #     id: 0EBFCD88
+    #     state: present
+    #   tags:
+    #     - docker
 
     - name: Set up the stable repository
       remote_user: ubuntu
       apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
         state: present
         update_cache: yes
       tags:
@@ -69,8 +69,11 @@
     - name: Install docker
       remote_user: ubuntu
       apt:
-        name: docker-ce
-        state: present
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: latest
         update_cache: yes
       #notify: Start docker on boot
       tags:

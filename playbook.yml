@@ -3,8 +3,11 @@
   remote_user: ubuntu
   become: yes
   tasks:
-    - name: Install Docker
+    - name: Update all packages to the latest version
       apt:
+        upgrade: dist
+    - name: Install Docker
+      package:
         name:
           - docker-ce
           - docker-ce-cli

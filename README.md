@@ -1,3 +1,3 @@
 # demo-jenkins
 Demo Jenkins Pipeline
-Test ver6
+Test ver7
